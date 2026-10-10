@@ -50,7 +50,7 @@
   <div id="sandbox-content">
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;padding:22px;border-radius:14px;max-width:700px;margin:0 auto;">
       <h2 style="margin:0 0 4px;font-size:20px;">2026 NFL: Every Game Total — Chronological</h2>
-      <p style="margin:0 0 10px;color:#94a3b8;font-size:13px;">65 games played, oldest to newest. Green = went Over, red = went Under. Dashed line = season average (45.1). Click any bar for details.</p>
+      <p style="margin:0 0 10px;color:#94a3b8;font-size:13px;">65 games played, oldest to newest. Green = went Over, red = went Under. Dashed line = season average of actual totals. Click any bar for details.</p>
 
       <div id="toast" style="background: rgb(51, 65, 85); color: rgb(226, 232, 240); font-size: 13px; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; opacity: 0; transition: opacity 0.25s;">Code selected — press Cmd+C</div>
 
@@ -132,48 +132,63 @@
           ["10/8","TB",24,"DAL",16,49.5,"U",5]
         ];
 
-        var labels=DATA.map(function(d){return d[0]+"  ·  "+d[1]+" @"+d[3];});
-        var vals=DATA.map(function(d){return d[5];});
-        var base=DATA.map(function(d){return d[6]==="O"?"#22c55e":"#ef4444";});
-        var avg=vals.reduce(function(a,b){return a+b;},0)/vals.length;
-        var sel=-1;
-        var detail=document.getElementById("detail");
+        // Calculate actual game totals (team1_score + team2_score)
+        var actualTotals = DATA.map(function(d) { return d[2] + d[4]; });
+        
+        var labels = DATA.map(function(d) { return d[0] + "  ·  " + d[1] + " @" + d[3]; });
+        var vals = actualTotals; // Use actual totals instead of betting line
+        var base = DATA.map(function(d) { return d[6] === "O" ? "#22c55e" : "#ef4444"; });
+        var avg = vals.reduce(function(a, b) { return a + b; }, 0) / vals.length;
+        var sel = -1;
+        var detail = document.getElementById("detail");
 
-        function renderDetail(){
-          if(sel<0){detail.innerHTML='<span style="color:#94a3b8">Click any bar to see the matchup, line and result.</span>';return;}
-          var d=DATA[sel], actual=d[2]+d[4], diff=(actual-d[5]).toFixed(1), over=d[6]==="O";
-          detail.innerHTML='<div style="font-size:15px;font-weight:700;margin-bottom:6px">Week '+d[7]+' · '+d[0]+' · '+d[1]+' '+d[2]+', '+d[3]+' '+d[4]+'</div>'
-            +'<div style="color:#cbd5e1;font-size:13px">Over/Under line: <b>'+d[5]+'</b> &nbsp;·&nbsp; Final total: <b>'+actual+'</b></div>'
-            +'<div style="margin-top:6px;font-weight:800;color:'+(over?"#22c55e":"#ef4444")+'">'+(over?"OVER":"UNDER")+' by '+Math.abs(diff)+'</div>';
+        function renderDetail() {
+          if (sel < 0) {
+            detail.innerHTML = '<span style="color:#94a3b8">Click any bar to see the matchup, line and result.</span>';
+            return;
+          }
+          var d = DATA[sel], actual = d[2] + d[4], diff = (actual - d[5]).toFixed(1), over = d[6] === "O";
+          detail.innerHTML = '<div style="font-size:15px;font-weight:700;margin-bottom:6px">Week ' + d[7] + ' · ' + d[0] + ' · ' + d[1] + ' ' + d[2] + ', ' + d[3] + ' ' + d[4] + '</div>'
+            + '<div style="color:#cbd5e1;font-size:13px">Over/Under line: <b>' + d[5] + '</b> &nbsp;·&nbsp; Final total: <b>' + actual + '</b></div>'
+            + '<div style="margin-top:6px;font-weight:800;color:' + (over ? "#22c55e" : "#ef4444") + '">' + (over ? "OVER" : "UNDER") + ' by ' + Math.abs(diff) + '</div>';
         }
-        function paint(){
-          chart.data.datasets[0].borderColor=base.map(function(c,i){return i===sel?"#ffffff":c;});
-          chart.data.datasets[0].borderWidth=base.map(function(c,i){return i===sel?3:0;});
+
+        function paint() {
+          chart.data.datasets[0].borderColor = base.map(function(c, i) { return i === sel ? "#ffffff" : c; });
+          chart.data.datasets[0].borderWidth = base.map(function(c, i) { return i === sel ? 3 : 0; });
           chart.update();
         }
 
-        var chart=new Chart(document.getElementById("c"),{
-          type:"bar",
-          data:{labels:labels,datasets:[
-            {label:"Game total",data:vals,backgroundColor:base,borderRadius:2,order:2},
-            {label:"Season average ("+avg.toFixed(1)+")",type:"line",data:vals.map(function(){return avg;}),borderColor:"#38bdf8",borderDash:[6,4],borderWidth:2,pointRadius:0,order:1}
-          ]},
-          options:{
-            responsive:true,maintainAspectRatio:false,
-            indexAxis:"y",
-            onHover:function(e,els){if(e.native&&e.native.target)e.native.target.style.cursor=els.length?"pointer":"default";},
-            onClick:function(e,els){sel=els.length?els[0].index:-1;renderDetail();paint();},
-            plugins:{
-              legend:{labels:{color:"#e2e8f0",boxWidth:12}},
-              tooltip:{callbacks:{label:function(c){
-                if(c.datasetIndex===1)return "Average "+avg.toFixed(1);
-                var d=DATA[c.dataIndex];
-                return ["Line: "+d[5],"Result: "+(d[6]==="O"?"OVER":"UNDER")];
-              }}}
+        var chart = new Chart(document.getElementById("c"), {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [
+              { label: "Actual game total", data: vals, backgroundColor: base, borderRadius: 2, order: 2 },
+              { label: "Season average (" + avg.toFixed(1) + ")", type: "line", data: vals.map(function() { return avg; }), borderColor: "#38bdf8", borderDash: [6, 4], borderWidth: 2, pointRadius: 0, order: 1 }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            indexAxis: "y",
+            onHover: function(e, els) { if (e.native && e.native.target) e.native.target.style.cursor = els.length ? "pointer" : "default"; },
+            onClick: function(e, els) { sel = els.length ? els[0].index : -1; renderDetail(); paint(); },
+            plugins: {
+              legend: { labels: { color: "#e2e8f0", boxWidth: 12 } },
+              tooltip: {
+                callbacks: {
+                  label: function(c) {
+                    if (c.datasetIndex === 1) return "Average " + avg.toFixed(1);
+                    var d = DATA[c.dataIndex];
+                    var actualTotal = d[2] + d[4];
+                    return ["Actual total: " + actualTotal, "Line: " + d[5], "Result: " + (d[6] === "O" ? "OVER" : "UNDER")];
+                  }
+                }
+              }
             },
-            scales:{
-              y:{ticks:{color:"#94a3b8",autoSkip:false,font:{size:9}},grid:{display:false}},
-              x:{ticks:{color:"#94a3b8"},grid:{color:"#1e293b"},suggestedMin:34,suggestedMax:58}
+            scales: {
+              y: { ticks: { color: "#94a3b8", autoSkip: false, font: { size: 9 } }, grid: { display: false } },
+              x: { ticks: { color: "#94a3b8" }, grid: { color: "#1e293b" }, suggestedMin: 0, suggestedMax: 100 }
             }
           }
         });
@@ -182,4 +197,4 @@
     </div>
   </div>
 </body>
-</html><!-- Trigger rebuild -->
+</html>
