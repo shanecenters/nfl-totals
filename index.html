@@ -328,9 +328,39 @@
                   includeGame = false;
                 }
               } else {
-                // Regular day filtering
-                if (gameDay !== currentDayFilter) {
-                  includeGame = false;
+                // Regular day filtering - but make sure we're comparing correctly
+                // For Thursday night, we want to check against our date mapping
+                if (currentDayFilter === "thursday") {
+                  // Use the date mapping to determine if this is a Thursday game
+                  var dateMapping = {
+                    // Week 1
+                    "9/10": "thursday", "9/11": "friday", "9/13": "sunday", "9/14": "monday", "9/15": "monday",
+                    // Week 2
+                    "9/17": "thursday", "9/18": "friday", "9/20": "sunday", "9/21": "monday", "9/22": "tuesday",
+                    // Week 3
+                    "9/24": "thursday", "9/25": "friday", "9/27": "sunday", "9/28": "monday", "9/29": "tuesday",
+                    // Week 4
+                    "10/1": "wednesday", "10/2": "thursday", "10/4": "sunday", "10/5": "monday", "10/6": "tuesday",
+                    // Week 5
+                    "10/8": "thursday", "10/9": "sunday", "10/10": "monday", "10/11": "tuesday",
+                    // Week 6
+                    "10/15": "thursday", "10/18": "sunday", "10/19": "monday", "10/20": "tuesday",
+                    // Week 7
+                    "10/22": "thursday", "10/25": "sunday", "10/26": "monday", "10/27": "tuesday",
+                    // Week 8
+                    "10/29": "thursday", "10/30": "wednesday", "10/31": "thursday", "11/1": "friday", "11/2": "saturday",
+                    // Week 9
+                    "11/5": "tuesday", "11/8": "friday", "11/9": "saturday"
+                  };
+                  
+                  if (dateMapping[gameDate] !== "thursday") {
+                    includeGame = false;
+                  }
+                } else {
+                  // For other day filters, use the getDayOfWeek function
+                  if (gameDay !== currentDayFilter) {
+                    includeGame = false;
+                  }
                 }
               }
             }
