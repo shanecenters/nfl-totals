@@ -126,7 +126,7 @@
           <option value="sunday">Sunday</option>
           <option value="monday">Monday Night</option>
           <option value="thursday">Thursday Night</option>
-          <option value="saturday">Saturday</option>
+          <option value="international">International</option>
         </select>
         
         <span class="filter-stats" id="filterStats"></span>
@@ -290,10 +290,17 @@
             // Week 8
             "10/29": "thursday", "10/30": "wednesday", "10/31": "thursday", "11/1": "friday", "11/2": "saturday",
             // Week 9
-            "11/5": "tuesday", "11/8": "friday", "11/9": "saturday"
+            "11/5": "tuesday", "11/8": "friday", "11/9": "international"
           };
           
-          return dateToDay[dateStr] || 'sunday';
+          var day = dateToDay[dateStr] || 'sunday';
+          
+          // Special case: International games (typically Saturday games in London, Mexico City, etc.)
+          if (day === 'saturday') {
+            day = 'international';
+          }
+          
+          return day;
         }
 
         function getFilteredData() {
