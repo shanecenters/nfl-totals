@@ -125,7 +125,7 @@
 
       <div id="toast" style="background: rgb(51, 65, 85); color: rgb(226, 232, 240); font-size: 13px; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; opacity: 0; transition: opacity 0.25s;">Code selected</div>
 
-      <div style="height:1060px;">
+      <div id="chartContainer" style="height:1060px; transition: height 0.3s ease;">
         <canvas id="c" width="1312" height="2120" style="display: block; box-sizing: border-box; height: 1060px; width: 656px;"></canvas>
       </div>
 
@@ -275,6 +275,25 @@
         function updateChart() {
           var filtered = getFilteredData();
           var newAvg = filtered.vals.reduce(function(a, b) { return a + b; }, 0) / filtered.vals.length;
+          
+          // Calculate dynamic height based on number of games
+          // Base height of 40px per game, min 300px, max 1200px
+          var numGames = filtered.vals.length;
+          var gameHeight = 40;
+          var minHeight = 300;
+          var maxHeight = 1200;
+          var calculatedHeight = Math.max(minHeight, Math.min(maxHeight, numGames * gameHeight));
+          
+          // Update container and canvas heights
+          var container = document.getElementById("chartContainer");
+          container.style.height = calculatedHeight + "px";
+          
+          var canvas = document.getElementById("c");
+          canvas.style.height = calculatedHeight + "px";
+          
+          // Update chart dimensions
+          chart.options.maintainAspectRatio = false;
+          chart.resize();
           
           chart.data.labels = filtered.labels;
           chart.data.datasets[0].data = filtered.vals;
