@@ -287,13 +287,9 @@
           };
 
           var day = dateToDay[dateStr] || "sunday";
-
-          // Special case: International games (typically Saturday games in London, Mexico City, etc.)
-          // Plus specific international dates: 9/10 (Melbourne), 9/27 (Rio), 10/4 (London)
-          if (day === "saturday" || ["9/10", "9/27", "10/4"].includes(dateStr)) {
-            return "international";
-          }
-
+          
+          // For day filtering purposes, return the actual day
+          // International games are handled specially in the filtering logic
           return day;
         }
 
@@ -313,10 +309,29 @@
             // Apply day filter
             if (currentDayFilter !== "all" && includeGame) {
               var gameDate = DATA[i][0];
+              var awayTeam = DATA[i][1];
+              var homeTeam = DATA[i][3];
               var gameDay = getDayOfWeek(gameDate);
               
-              if (gameDay !== currentDayFilter) {
-                includeGame = false;
+              // Special handling for international filter
+              if (currentDayFilter === "international") {
+                // Only specific matchups were actually international games
+                var internationalGames = [
+                  "9/10:NE@SEA",  // Melbourne
+                  "9/27:BAL@DAL", // Rio
+                  "10/4:IND@WSH"  // London
+                ];
+                var gameIdentifier1 = gameDate + ":" + awayTeam + "@" + homeTeam;
+                var gameIdentifier2 = gameDate + ":" + homeTeam + "@" + awayTeam;
+                
+                if (!(internationalGames.includes(gameIdentifier1) || internationalGames.includes(gameIdentifier2))) {
+                  includeGame = false;
+                }
+              } else {
+                // Regular day filtering
+                if (gameDay !== currentDayFilter) {
+                  includeGame = false;
+                }
               }
             }
             
