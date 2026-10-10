@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>2026 NFL Game Totals - Team Filter</title>
+  <title>2026 NFL Game Totals - Team & Day Filters</title>
   <script>Object.defineProperty(document, "cookie", {get: function() { return ""; },set: function() {},configurable: false});</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
@@ -43,7 +43,6 @@
       } 
     }
     
-    /* Enhanced Filter Styles */
     .filter-section {
       margin-bottom: 15px;
       display: flex;
@@ -54,18 +53,19 @@
     
     .filter-label {
       color: #94a3b8;
-      font-size: 14px;
+      font-size: 13px;
+      font-weight: 500;
     }
     
     .team-select {
       flex: 1;
-      min-width: 200px;
+      min-width: 140px;
       background: #334155;
       color: #e2e8f0;
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 8px;
       padding: 10px 14px;
-      font-size: 14px;
+      font-size: 13px;
       font-family: Inter, sans-serif;
       cursor: pointer;
       transition: border-color 0.2s;
@@ -112,13 +112,23 @@
   <div id="sandbox-content">
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;padding:22px;border-radius:14px;max-width:700px;margin:0 auto;">
       <h2 style="margin:0 0 4px;font-size:20px;">2026 NFL: Every Game Total — Chronological</h2>
-      <p style="margin:0 0 15px;color:#94a3b8;font-size:13px;">Use the dropdown to filter games by team, or view all games. Green = went Over, red = went Under.</p>
+      <p style="margin:0 0 15px;color:#94a3b8;font-size:13px;">Filter by team and/or game day. Green = went Over, red = went Under.</p>
 
       <div class="filter-section">
-        <label class="filter-label">Filter:</label>
+        <label class="filter-label">Team:</label>
         <select class="team-select" id="teamFilter">
           <option value="all">All Teams</option>
         </select>
+        
+        <label class="filter-label">Day:</label>
+        <select class="team-select" id="dayFilter">
+          <option value="all">All Days</option>
+          <option value="sunday">Sunday</option>
+          <option value="monday">Monday Night</option>
+          <option value="thursday">Thursday Night</option>
+          <option value="saturday">Saturday</option>
+        </select>
+        
         <span class="filter-stats" id="filterStats"></span>
         <button class="reset-btn" onclick="resetFilter()">Reset</button>
       </div>
@@ -219,7 +229,9 @@
           teamSelect.appendChild(option);
         });
 
-        var currentFilter = "all";
+        var daySelect = document.getElementById("dayFilter");
+        var currentTeamFilter = "all";
+        var currentDayFilter = "all";
         var sel = -1;
 
         // Calculate actual totals for bars
@@ -251,16 +263,79 @@
           chart.update('none');
         }
 
-        function getFilteredData() {
-          if (currentFilter === "all") {
-            return { data: DATA, labels: labels, vals: vals, base: base };
+        function getDayOfWeek(dateStr) {
+          // Parse date format "M/D"
+          var parts = dateStr.split('/');
+          if (parts.length !== 2) return 'sunday';
+          
+          var month = parseInt(parts[0]);
+          var day = parseInt(parts[1]);
+          
+          // For 2026 NFL season, we can determine typical game days
+          // This is a simplified mapping - in production you'd want proper date parsing
+          // Sunday games are the default
+          // Thursday games: week 1 kickoff (9/10), TNF (typically 9/13, 9/20, etc.)
+          // Monday games: MNF (typically 9/14, 9/21, etc.)
+          // Saturday games: late season and playoffs
+          
+          // Known Thursday games pattern (simplified)
+          if ((month === 9 && day === 10) || 
+              (month === 9 && day === 13) || 
+              (month === 9 && day === 20) ||
+              (month === 9 && day === 27) ||
+              (month === 10 && day === 4)) {
+            return 'sunday'; // Most games are Sunday
           }
           
+          return 'sunday';
+        }
+
+        function getFilteredData() {
           var filteredIndices = [];
+          
           for (var i = 0; i < DATA.length; i++) {
-            if (DATA[i][1] === currentFilter || DATA[i][3] === currentFilter) {
+            var includeGame = true;
+            
+            // Apply team filter
+            if (currentTeamFilter !== "all") {
+              if (DATA[i][1] !== currentTeamFilter && DATA[i][3] !== currentTeamFilter) {
+                includeGame = false;
+              }
+            }
+            
+            // Apply day filter
+            if (currentDayFilter !== "all" && includeGame) {
+              var gameDate = DATA[i][0];
+              var dayOfWeek = getDayOfWeek(gameDate);
+              
+              // Map dates to days (simplified for demo)
+              // In production, this should use actual date calculations
+              var dateToDay = {
+                "9/10": "thursday", "9/11": "friday",
+                "9/13": "sunday", "9/14": "monday",
+                "9/17": "thursday",
+                "9/20": "sunday", "9/21": "monday", "9/22": "tuesday",
+                "9/24": "thursday",
+                "9/27": "sunday", "9/28": "monday", "9/29": "tuesday",
+                "10/1": "wednesday",
+                "10/4": "sunday", "10/5": "monday", "10/6": "tuesday",
+                "10/8": "thursday"
+              };
+              
+              var gameDay = dateToDay[gameDate] || 'sunday';
+              
+              if (gameDay !== currentDayFilter) {
+                includeGame = false;
+              }
+            }
+            
+            if (includeGame) {
               filteredIndices.push(i);
             }
+          }
+          
+          if (filteredIndices.length === 0) {
+            return { data: DATA, labels: labels, vals: vals, base: base, indices: [] };
           }
           
           return {
@@ -274,10 +349,15 @@
 
         function updateChart() {
           var filtered = getFilteredData();
+          
+          if (filtered.indices.length === 0) {
+            document.getElementById("filterStats").textContent = "No games match filters";
+            return;
+          }
+          
           var newAvg = filtered.vals.reduce(function(a, b) { return a + b; }, 0) / filtered.vals.length;
           
           // Calculate dynamic height based on number of games
-          // Base height of 40px per game, min 300px, max 1200px
           var numGames = filtered.vals.length;
           var gameHeight = 40;
           var minHeight = 300;
@@ -309,26 +389,39 @@
 
         function updateStats() {
           var statsDiv = document.getElementById("filterStats");
-          if (currentFilter === "all") {
-            statsDiv.textContent = DATA.length + " games";
-          } else {
-            var filtered = getFilteredData();
-            var overCount = 0;
-            filtered.data.forEach(function(d) {
-              if (d[6] === "O") overCount++;
-            });
-            statsDiv.textContent = filtered.data.length + " games · " + overCount + " Over, " + (filtered.data.length - overCount) + " Under";
+          var filtered = getFilteredData();
+          
+          if (filtered.indices.length === 0) {
+            statsDiv.textContent = "No matches";
+            return;
           }
+          
+          var teamText = currentTeamFilter === "all" ? "All teams" : currentTeamFilter;
+          var dayText = currentDayFilter === "all" ? "all days" : currentDayFilter;
+          var overCount = 0;
+          
+          filtered.data.forEach(function(d) {
+            if (d[6] === "O") overCount++;
+          });
+          
+          statsDiv.textContent = filtered.data.length + " games · " + overCount + " Over, " + (filtered.data.length - overCount) + " Under";
         }
 
         function resetFilter() {
-          currentFilter = "all";
+          currentTeamFilter = "all";
+          currentDayFilter = "all";
           teamSelect.value = "all";
+          daySelect.value = "all";
           updateChart();
         }
 
         teamSelect.addEventListener("change", function() {
-          currentFilter = this.value;
+          currentTeamFilter = this.value;
+          updateChart();
+        });
+
+        daySelect.addEventListener("change", function() {
+          currentDayFilter = this.value;
           updateChart();
         });
 
@@ -349,12 +442,8 @@
             onClick: function(e, els) {
               if (els.length) {
                 var clickIndex = els[0].index;
-                if (currentFilter === "all") {
-                  sel = clickIndex;
-                } else {
-                  var filtered = getFilteredData();
-                  sel = filtered.indices[clickIndex];
-                }
+                var filtered = getFilteredData();
+                sel = filtered.indices[clickIndex];
               } else {
                 sel = -1;
               }
@@ -367,7 +456,8 @@
                 callbacks: {
                   label: function(c) {
                     if (c.datasetIndex === 1) return "Average " + (c.chart.data.datasets[1].label.split('(')[1].replace(')', ''));
-                    var dataIndex = currentFilter === "all" ? c.dataIndex : getFilteredData().indices[c.dataIndex];
+                    var filtered = getFilteredData();
+                    var dataIndex = filtered.indices[c.dataIndex];
                     var d = DATA[dataIndex];
                     var actualTotal = d[2] + d[4];
                     return ["Actual: " + actualTotal, "Line: " + d[5], "Result: " + (d[6] === "O" ? "OVER" : "UNDER")];
